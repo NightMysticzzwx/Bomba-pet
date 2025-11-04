@@ -1,5 +1,6 @@
 --// Night Mystic | Find Fruits (Smooth Tween + Webhook Version)
-
+getgenv().AutoFindFruit = true
+getgenv().AutoStoreFruit = false
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild("DataLoaded")
 
 -- Auto team
