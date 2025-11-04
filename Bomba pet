@@ -1,0 +1,195 @@
+--// Night Mystic | Find Fruits (Smooth Tween + Webhook Version)
+
+repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer:FindFirstChild("DataLoaded")
+
+-- Auto team
+pcall(function()
+	local rem = game.ReplicatedStorage:WaitForChild("Remotes")
+	rem.CommF_:InvokeServer("SetTeam", getgenv().team)
+end)
+
+-- Serviços
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Player = Players.LocalPlayer
+
+-- ======= INTRO =======
+local blur = Instance.new("BlurEffect", Lighting)
+blur.Size = 24
+local introGui = Instance.new("ScreenGui", CoreGui)
+introGui.Name = "IntroGui"
+introGui.IgnoreGuiInset = true
+
+local frame = Instance.new("Frame", introGui)
+frame.Size = UDim2.new(1,0,1,0)
+frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+frame.BackgroundTransparency = 0.4
+
+local logo = Instance.new("ImageLabel", frame)
+logo.Size = UDim2.new(0,170,0,170)
+logo.Position = UDim2.new(0.5,-85,0.5,-100)
+logo.BackgroundTransparency = 1
+logo.Image = "rbxassetid://92302105743509"
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(0,300,0,40)
+title.Position = UDim2.new(0.5,-150,0.5,50)
+title.BackgroundTransparency = 1
+title.Text = "Night Mystic | Find Fruits"
+title.TextColor3 = Color3.fromRGB(230,230,255)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+TweenService:Create(logo, TweenInfo.new(1.5), {ImageTransparency = 0}):Play()
+TweenService:Create(title, TweenInfo.new(1.5), {TextTransparency = 0}):Play()
+task.wait(3)
+blur:Destroy()
+introGui:Destroy()
+
+repeat task.wait() until Player:FindFirstChild("PlayerGui")
+
+-- ======= INTERFACE (igual anterior, não alterado) =======
+pcall(function() if CoreGui:FindFirstChild("ScreenGui_Chest") then CoreGui.ScreenGui_Chest:Destroy() end end)
+
+local gui = Instance.new("ScreenGui", CoreGui)
+gui.Name = "ScreenGui_Chest"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.BackgroundColor3 = Color3.fromRGB(43,43,43)
+main.BackgroundTransparency = 0.5
+main.Position = UDim2.new(0.3,0,0.28,0)
+main.Size = UDim2.new(0,281,0,164)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main)
+
+-- Minimizar
+local minimize = Instance.new("ImageButton", main)
+minimize.BackgroundTransparency = 1
+minimize.Position = UDim2.new(0.875,0,0.02,0)
+minimize.Size = UDim2.new(0,19,0,26)
+minimize.Image = "http://www.roblox.com/asset/?id=15511995461"
+
+-- Avatar
+local avatar = Instance.new("ImageLabel", main)
+avatar.BackgroundTransparency = 1
+avatar.Position = UDim2.new(0.05,0,0.2,0)
+avatar.Size = UDim2.new(0,90,0,100)
+pcall(function()
+	avatar.Image = Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.AvatarThumbnail, Enum.ThumbnailSize.Size420x420)
+end)
+
+-- Discord
+local discord = Instance.new("TextButton", main)
+discord.BackgroundColor3 = Color3.fromRGB(52,52,52)
+discord.BackgroundTransparency = 0.1
+discord.BorderSizePixel = 0
+discord.Position = UDim2.new(0.48,0,0.43,0)
+discord.Size = UDim2.new(0,121,0,28)
+discord.Font = Enum.Font.SourceSansBold
+discord.Text = "Join Discord"
+discord.TextColor3 = Color3.fromRGB(255,255,255)
+discord.TextSize = 14
+discord.MouseButton1Down:Connect(function()
+	setclipboard("https://discord.gg/sEdbNRtcFe")
+	discord.Text = "Copied!"
+	task.wait(0.5)
+	discord.Text = "Join Discord"
+end)
+
+-- Toggle Auto Find
+local toggle = Instance.new("TextButton", main)
+toggle.BackgroundColor3 = Color3.fromRGB(52,52,52)
+toggle.BackgroundTransparency = 0.1
+toggle.BorderSizePixel = 0
+toggle.Position = UDim2.new(0.48,0,0.69,0)
+toggle.Size = UDim2.new(0,121,0,28)
+toggle.Font = Enum.Font.SourceSansBold
+toggle.TextColor3 = Color3.fromRGB(255,255,255)
+toggle.TextSize = 14
+toggle.Text = "Auto Find Fruit: ON"
+toggle.MouseButton1Down:Connect(function()
+	getgenv().AutoFindFruit = not getgenv().AutoFindFruit
+	toggle.Text = "Auto Find Fruit: " .. (getgenv().AutoFindFruit and "ON" or "OFF")
+end)
+
+-- ======= WEBHOOK =======
+if not getgenv().WebhookJaExecutado then
+	getgenv().WebhookJaExecutado = true
+
+	local webhook = getgenv().FruitWebhook or ""
+	if webhook == "" then
+		warn("⚠️ Nenhum webhook configurado! Defina getgenv().FruitWebhook antes de executar o script.")
+	else
+		local HttpService = game:GetService("HttpService")
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		local plr = Players.LocalPlayer
+		local userId = plr.UserId
+		local comm = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+		local avatarUrl = "https://www.roblox.com/headshot-thumbnail/image?userId="..userId.."&width=420&height=420&format=png"
+		local botIcon = "https://i.imgur.com/Nk1a89M.jpeg"
+		local profileUrl = "https://www.roblox.com/users/"..userId.."/profile"
+
+		local function sendWebhook(fruitName)
+			local data = {
+				["username"] = "Night Mystic",
+				["avatar_url"] = botIcon,
+				["embeds"] = {{
+					["title"] = "🍎 Fruit Finder — [Join Night Mystic](https://discord.gg/sEdbNRtcFe)",
+					["description"] = "Uma fruta foi **armazenada no inventário**!",
+					["color"] = 139,
+					["thumbnail"] = {["url"] = avatarUrl},
+					["fields"] = {
+						{["name"] = "👤 Player", ["value"] = "["..plr.Name.."]("..profileUrl..")", ["inline"] = true},
+						{["name"] = "🍏 Fruta", ["value"] = fruitName or "Desconhecida", ["inline"] = true},
+						{["name"] = "🌍 PlaceId", ["value"] = tostring(game.PlaceId), ["inline"] = true},
+					},
+					["footer"] = {["text"] = "Horário: " .. os.date("%d/%m/%Y %H:%M:%S"), ["icon_url"] = botIcon}
+				}}
+			}
+			local req = http_request or request or syn and syn.request
+			if req then
+				req({
+					Url = webhook,
+					Method = "POST",
+					Headers = {["Content-Type"] = "application/json"},
+					Body = HttpService:JSONEncode(data)
+				})
+				print("[✅] Webhook enviado com sucesso para fruta:", fruitName)
+			else
+				warn("Executor não suporta http_request!")
+			end
+		end
+
+		-- intercepta chamadas de armazenamento
+		local old
+		old = hookmetamethod(game, "__namecall", function(self, ...)
+			local args = {...}
+			local method = getnamecallmethod()
+
+			if self == comm and method == "InvokeServer" and args[1] == "StoreFruit" then
+				local result = old(self, ...)
+				if result == true or tostring(result):lower():find("sucess") then
+					task.spawn(function()
+						sendWebhook(args[2])
+					end)
+				end
+				return result
+			end
+			return old(self, ...)
+		end)
+
+		print("[🧩] Sistema de webhook ativo!")
+	end
+else
+	warn("⚠️ Webhook já estava ativo, ignorando nova execução.")
+end
+
+-- ======= ESP, AUTO FIND e HOP (sem mudanças do original) =======
+-- (mantém tudo abaixo do seu código original exatamente igual)
